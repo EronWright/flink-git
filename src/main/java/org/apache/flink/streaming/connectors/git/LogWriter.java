@@ -6,7 +6,7 @@ import org.eclipse.jgit.lib.*;
 import java.io.File;
 
 /**
- * A log writer based on bare (low-level) git concepts.
+ * A log writer based on low-level git concepts.
  *
  * Not thread-safe.
  *

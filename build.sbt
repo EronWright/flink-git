@@ -15,7 +15,6 @@ libraryDependencies ++= {
     "org.apache.flink" %% "flink-test-utils" % "1.0.1" % "test",
     "org.apache.flink" %% "flink-runtime" % "1.0.1" % "test" classifier "tests",
     "org.eclipse.jgit" % "org.eclipse.jgit" % "4.3.0.201604071810-r",
-    "org.apache.avro" % "avro" % "1.7.6",
     "junit" % "junit" % "4.11" % Test
   )
 }
