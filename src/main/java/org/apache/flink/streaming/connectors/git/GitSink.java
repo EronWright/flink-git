@@ -77,11 +77,7 @@ public class GitSink<T> extends RichSinkFunction<T> implements InputTypeConfigur
             throw new UnsupportedOperationException("GitSink supports only the local filesystem");
         }
         File repoFile = pathToFile(repoPath);
-        repository = new RepositoryBuilder()
-                .setGitDir(repoFile)
-                .setMustExist(false)
-                .setBare()
-                .build();
+        repository = new RepositoryBuilder().setGitDir(repoFile).setMustExist(false).setBare().build();
         repository.create(true);
 
         currentWriter = new LogWriter(repository, ObjectId.zeroId(), getRuntimeContext());
