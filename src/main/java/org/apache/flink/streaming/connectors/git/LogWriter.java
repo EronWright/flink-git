@@ -77,11 +77,14 @@ public class LogWriter {
         ObjectId commitId = inserter.insert(commit);
         inserter.flush();
 
-        // update the HEAD ref to point to the latest commit (for usability of git tool)
-        RefUpdate headRef = repository.getRefDatabase().newUpdate(Constants.HEAD, false);
-        headRef.setExpectedOldObjectId(currentCommitId);
-        headRef.setNewObjectId(commitId);
-        RefUpdate.Result result = headRef.update();
+        // update this log's reference to point to the latest commit
+        String branchName = "partition-" + (context.getIndexOfThisSubtask() + 1);
+        RefUpdate refUpdate = repository.getRefDatabase().newUpdate(Constants.R_HEADS + branchName, false);
+        refUpdate.setExpectedOldObjectId(currentCommitId);
+        refUpdate.setNewObjectId(commitId);
+        refUpdate.setRefLogMessage(String.format("checkpointId: %d", checkpointId), false);
+        RefUpdate.Result result = refUpdate.update();
+
         if(result != RefUpdate.Result.NEW && result != RefUpdate.Result.FAST_FORWARD) {
             throw new RuntimeException("unexpected outcome: " + result);
         }

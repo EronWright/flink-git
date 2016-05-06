@@ -30,7 +30,7 @@ public class GitSinkITCase extends StreamingMultipleProgramsTestBase {
      */
     @Test
     public void testCheckpointing1() throws Exception {
-        final int PARALLELISM = 1;
+        final int PARALLELISM = 2;
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(PARALLELISM);
         env.enableCheckpointing(1000);
@@ -44,19 +44,22 @@ public class GitSinkITCase extends StreamingMultipleProgramsTestBase {
         result.getJobID();
 
         // verify the contents of the repository.
-        Repository repository = new RepositoryBuilder().setGitDir(new File(outPath, "git-0")).setMustExist(true).setBare().build();
-        Ref head = repository.exactRef("refs/heads/master");
-        try (RevWalk walk = new RevWalk(repository)) {
-            RevCommit checkpointOnClose = walk.parseCommit(head.getObjectId());
-            Assert.assertNotNull(checkpointOnClose);
-            walk.markStart(checkpointOnClose);
-            walk.next();
-            RevCommit checkpoint2 = walk.next();
-            Assert.assertNotNull(checkpoint2);
-            RevCommit checkpoint1 = walk.next();
-            Assert.assertNotNull(checkpoint1);
-            Assert.assertEquals(0, checkpoint1.getParents().length);
+        Repository repository = new RepositoryBuilder().setGitDir(outPath).setMustExist(true).setBare().build();
+        for(int subtaskIndex = 1; subtaskIndex <= PARALLELISM; subtaskIndex++) {
+            Ref head = repository.exactRef("refs/heads/partition-" + subtaskIndex);
+            try (RevWalk walk = new RevWalk(repository)) {
+                RevCommit checkpointOnClose = walk.parseCommit(head.getObjectId());
+                Assert.assertNotNull(checkpointOnClose);
+                walk.markStart(checkpointOnClose);
+                walk.next();
+                RevCommit checkpoint2 = walk.next();
+                Assert.assertNotNull(checkpoint2);
+                RevCommit checkpoint1 = walk.next();
+                Assert.assertNotNull(checkpoint1);
+                Assert.assertEquals(0, checkpoint1.getParents().length);
+            }
         }
+        repository.close();
     }
 
     /**

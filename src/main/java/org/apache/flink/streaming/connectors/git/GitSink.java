@@ -54,8 +54,15 @@ public class GitSink<T> extends RichSinkFunction<T> implements InputTypeConfigur
      */
     private transient LogWriter currentWriter;
 
-    public GitSink(String basePath) {
+    public GitSink(String basePath) throws IOException {
+
         this.basePath = basePath;
+
+        File repoFile = resolveGitPath();
+        repository = new RepositoryBuilder().setGitDir(repoFile).setMustExist(false).setBare().build();
+        if (!repository.getObjectDatabase().exists())
+            repository.create(true);
+        repository.close();
     }
 
     @Override
@@ -72,16 +79,19 @@ public class GitSink<T> extends RichSinkFunction<T> implements InputTypeConfigur
         if(schema == null) throw new IllegalStateException("inputType must be set");
 
         // create or open the repository
-        Path repoPath = new Path(basePath, "git" + "-" + subtaskIndex);
-        if(!(repoPath.getFileSystem() instanceof LocalFileSystem)) {
-            throw new UnsupportedOperationException("GitSink supports only the local filesystem");
-        }
-        File repoFile = pathToFile(repoPath);
-        repository = new RepositoryBuilder().setGitDir(repoFile).setMustExist(false).setBare().build();
-        repository.create(true);
+        File repoFile = resolveGitPath();
+        repository = new RepositoryBuilder().setGitDir(repoFile).setMustExist(true).setBare().build();
 
         currentWriter = new LogWriter(repository, ObjectId.zeroId(), getRuntimeContext());
         currentWriter.open();
+    }
+
+    private File resolveGitPath() throws IOException {
+        Path repoPath = new Path(basePath);
+        if(!(repoPath.getFileSystem() instanceof LocalFileSystem)) {
+            throw new UnsupportedOperationException("GitSink supports only the local filesystem");
+        }
+        return pathToFile(repoPath);
     }
 
     @Override
@@ -90,6 +100,8 @@ public class GitSink<T> extends RichSinkFunction<T> implements InputTypeConfigur
         // hack: issue a final checkpoint
         currentWriter.checkpoint(Long.MAX_VALUE);
         currentWriter.close();
+
+        repository.close();
 
         super.close();
     }
